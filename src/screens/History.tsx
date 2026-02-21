@@ -1,40 +1,125 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import type { Route } from '../../App';
-import { getAllTryouts } from '../utils/storage';
+import React, { useState, useCallback, useMemo } from 'react';
+import { View, Text, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../App';
+import { getAllTryouts, deleteTryout } from '../utils/storage';
 import { Tryout } from '../models/tryout';
+import { styles } from '../styles/globalStyles';
 
-export default function History({ navigate }: { navigate: (r: Route) => void }) {
+type Props = NativeStackScreenProps<RootStackParamList, 'History'>;
+
+export default function History({ navigation }: Props) {
   const [list, setList] = useState<Tryout[]>([]);
 
-  useEffect(() => {
-    (async () => {
-      const l = await getAllTryouts();
-      setList(l);
-    })();
+  const load = useCallback(async () => {
+    const l = await getAllTryouts();
+    setList(l.slice().reverse());
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  const highest = useMemo(() => {
+    if (!list.length) return null;
+    return Math.max(...list.map(t => t.total_score));
+  }, [list]);
+
+  const handleDelete = (item: Tryout, index: number) => {
+    Alert.alert(
+      'Hapus Tryout',
+      `Yakin ingin menghapus Tryout #${list.length - index}?`,
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Hapus',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteTryout(item.id);
+            await load();
+          },
+        },
+      ],
+    );
+  };
+
+  const renderItem = ({ item, index }: { item: Tryout; index: number }) => {
+    const previous = list[index + 1];
+    const diff = previous ? item.total_score - previous.total_score : null;
+
+    return (
+      <TouchableOpacity
+        style={styles.historyCard}
+        onPress={() => navigation.navigate('Result', { id: item.id })}
+      >
+        <View style={styles.historyAccent} />
+
+        <View style={styles.historyContent}>
+          <View>
+            <Text style={styles.historyIndex}>
+              Tryout #{list.length - index}
+            </Text>
+
+            <Text style={styles.historyDate}>
+              {new Date(item.date).toLocaleDateString()}
+            </Text>
+          </View>
+
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={styles.historyScore}>{item.total_score}</Text>
+
+            {diff !== null && (
+              <Text
+                style={[
+                  styles.deltaText,
+                  {
+                    color:
+                      diff > 0 ? '#22c55e' : diff < 0 ? '#ef4444' : '#94a3b8',
+                  },
+                ]}
+              >
+                {diff > 0 ? `▲ +${diff}` : diff < 0 ? `▼ ${diff}` : '—'}
+              </Text>
+            )}
+
+            <TouchableOpacity onPress={() => handleDelete(item, index)}>
+              <Text style={styles.deleteText}>Hapus</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   return (
-    <View style={styles.root}>
+    <SafeAreaView style={styles.screen}>
       <Text style={styles.title}>Riwayat Tryout</Text>
+
+      {list.length > 0 && (
+        <View style={styles.summaryBar}>
+          <Text style={styles.summaryText}>Total Tryout: {list.length}</Text>
+          <Text style={styles.summaryText}>Skor Tertinggi: {highest}</Text>
+        </View>
+      )}
+
       <FlatList
         data={list}
-        keyExtractor={(i) => i.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.item} onPress={() => navigate({ name: 'Result', params: { id: item.id } })}>
-            <Text>{new Date(item.date).toLocaleString()}</Text>
-            <Text style={styles.total}>{item.total_score}</Text>
-          </TouchableOpacity>
-        )}
-        ListEmptyComponent={<Text>Tidak ada tryout</Text>}
+        keyExtractor={i => i.id}
+        renderItem={renderItem}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        ListEmptyComponent={
+          <View style={{ marginTop: 80, alignItems: 'center' }}>
+            <Text style={styles.emptyTitle}>📊 Belum ada tryout</Text>
+            <Text style={styles.emptySubtitle}>
+              Tambahkan tryout pertama kamu.
+            </Text>
+          </View>
+        }
       />
-    </View>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, padding: 16 },
-  title: { fontSize: 20, fontWeight: '700', marginBottom: 12 },
-  item: { padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee', flexDirection: 'row', justifyContent: 'space-between' },
-  total: { fontWeight: '700' },
-});
