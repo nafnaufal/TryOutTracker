@@ -32,5 +32,15 @@ export async function saveTryout(t: Tryout): Promise<void> {
 
 export async function getTryoutById(id: string): Promise<Tryout | null> {
   const list = await getAllTryouts();
-  return list.find((t) => t.id === id) ?? null;
+  return list.find(t => t.id === id) ?? null;
+}
+
+export async function deleteTryout(id: string): Promise<void> {
+  if (AsyncStorage) {
+    const list = await getAllTryouts();
+    const filtered = list.filter(t => t.id !== id);
+    await AsyncStorage.setItem(KEY, JSON.stringify(filtered));
+    return;
+  }
+  memoryStore = memoryStore.filter(t => t.id !== id);
 }

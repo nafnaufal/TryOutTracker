@@ -1,47 +1,84 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Button } from 'react-native';
-import type { Route } from '../../App';
+import React, { useEffect, useState, useMemo } from 'react';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../App';
 import { getTryoutById, getAllTryouts } from '../utils/storage';
 import { Tryout } from '../models/tryout';
+import {
+  totalTrend as calcTotalTrend,
+  perSubtestDeltas,
+} from '../utils/trends';
+import { styles } from '../styles/globalStyles';
+import SubtestCard from '../components/SubtestCard';
+import SummaryCard from '../components/SummaryCard';
 
-export default function Result({ navigate, id }: { navigate: (r: Route) => void; id: string }) {
-  const [t, setT] = useState<Tryout | null>(null);
-  const [prev, setPrev] = useState<Tryout | null>(null);
+type Props = NativeStackScreenProps<RootStackParamList, 'Result'>;
+
+export default function Result({ navigation, route }: Props) {
+  const { id } = route.params;
+
+  const [current, setCurrent] = useState<Tryout | null>(null);
+  const [previous, setPrevious] = useState<Tryout | null>(null);
 
   useEffect(() => {
     (async () => {
       const cur = await getTryoutById(id);
-      setT(cur);
+      setCurrent(cur);
+
       const all = await getAllTryouts();
-      const other = all.find((x) => x.id !== id) ?? null;
-      setPrev(other);
+      const sorted = all.slice().reverse();
+      const index = sorted.findIndex(x => x.id === id);
+      const prev = index > 0 ? sorted[index - 1] : null;
+      setPrevious(prev);
     })();
   }, [id]);
 
-  const trendSummary = () => {
-    if (!t || !prev) return 'Tidak ada perbandingan sebelumnya';
-    const diff = t.total_score - prev.total_score;
-    const sign = diff > 0 ? '+' : '';
-    return `Kamu ${diff === 0 ? 'tidak berubah' : `meningkat ${sign}${diff} poin`}`;
-  };
+  const totalTrend = useMemo(
+    () => calcTotalTrend(current, previous),
+    [current, previous],
+  );
+
+  const deltas = useMemo(
+    () => perSubtestDeltas(current, previous),
+    [current, previous],
+  );
+
+  if (!current) {
+    return (
+      <SafeAreaView style={styles.screen}>
+        <Text style={styles.bodyText}>Memuat hasil...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <View style={styles.root}>
-      <Text style={styles.title}>Hasil Tryout</Text>
-      {t ? (
-        <View>
-          <Text>{new Date(t.date).toLocaleString()}</Text>
-          <Text style={styles.total}>Total: {t.total_score}</Text>
-          <Text style={{ marginTop: 12 }}>{trendSummary()}</Text>
-          <View style={{ marginTop: 20 }}>
-            <Button title="Selesai" onPress={() => navigate({ name: 'Home' })} />
-          </View>
+    <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
+      <ScrollView contentContainerStyle={styles.screenContent}>
+        <Text style={styles.title}>Hasil Tryout</Text>
+
+        {/* SUMMARY */}
+        <SummaryCard
+          totalScore={current.total_score}
+          trend={previous ? totalTrend : undefined}
+          subtitle={new Date(current.date).toLocaleString()}
+        />
+        {/* DETAIL PER SUBTES */}
+        <Text style={styles.sectionTitle}>Detail Per Subtes</Text>
+
+        <View style={styles.grid}>
+          {deltas.map((d, i) => (
+            <SubtestCard key={i} data={d} />
+          ))}
         </View>
-      ) : (
-        <Text>Memuat hasil...</Text>
-      )}
-    </View>
+        {/* ACTION */}
+        <TouchableOpacity
+          style={styles.buttonPrimary}
+          onPress={() => navigation.popToTop()}
+        >
+          <Text style={styles.buttonTextPrimary}>Kembali ke Dashboard</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({ root: { flex: 1, padding: 16 }, title: { fontSize: 20, fontWeight: '700' }, total: { fontSize: 22, fontWeight: '800' } });

@@ -5,41 +5,39 @@
  * @format
  */
 
-import React, { useEffect, useState } from 'react';
-import { StatusBar, StyleSheet, View } from 'react-native';
+import React from 'react';
+import { StatusBar } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Splash, Home, AddTryout, Result, History } from './src/screens';
 
-export type Route =
-  | { name: 'Splash' }
-  | { name: 'Home' }
-  | { name: 'AddTryout' }
-  | { name: 'Result'; params: { id: string } }
-  | { name: 'History' };
+export type RootStackParamList = {
+  Splash: undefined;
+  Home: undefined;
+  AddTryout: undefined;
+  Result: { id: string };
+  History: undefined;
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
-  const [route, setRoute] = useState<Route>({ name: 'Splash' });
-
-  useEffect(() => {
-    // Keep status bar style neutral; screens can override if needed
-  }, []);
-
-  const navigate = (r: Route) => setRoute(r);
-
   return (
     <SafeAreaProvider>
       <StatusBar barStyle={'dark-content'} />
-      <View style={styles.container}>
-        {route.name === 'Splash' && <Splash navigate={navigate} />}
-        {route.name === 'Home' && <Home navigate={navigate} />}
-        {route.name === 'AddTryout' && <AddTryout navigate={navigate} />}
-        {route.name === 'Result' && <Result navigate={navigate} id={route.params.id} />}
-        {route.name === 'History' && <History navigate={navigate} />}
-      </View>
+      <NavigationContainer>
+        <Stack.Navigator
+          initialRouteName="Splash"
+          screenOptions={{ headerShown: false }}
+        >
+          <Stack.Screen name="Splash" component={Splash} />
+          <Stack.Screen name="Home" component={Home} />
+          <Stack.Screen name="AddTryout" component={AddTryout} />
+          <Stack.Screen name="Result" component={Result} />
+          <Stack.Screen name="History" component={History} />
+        </Stack.Navigator>
+      </NavigationContainer>
     </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-});
