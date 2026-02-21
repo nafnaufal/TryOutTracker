@@ -1,3 +1,35 @@
+TryOutTracker Project Structure (sample)
+
+app.json
+App.tsx
+babel.config.js
+package.json
+
+src/
+  assets/
+    icon.png (optional)
+  components/
+    Header.tsx
+  models/
+    tryout.ts
+  screens/
+    Splash.tsx
+    Home.tsx
+    AddTryout.tsx
+    Result.tsx
+    History.tsx
+  utils/
+    storage.ts
+
+android/
+ios/
+
+Notes:
+- Screens follow the requested flow: Splash -> Home -> Add Tryout -> Result -> History
+- `storage.ts` uses AsyncStorage if available; otherwise an in-memory fallback
+- Add real assets (icon.png) in `src/assets/` when ready
+
+
 This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
 # Getting Started

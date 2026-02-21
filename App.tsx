@@ -5,41 +5,41 @@
  * @format
  */
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import React, { useEffect, useState } from 'react';
+import { StatusBar, StyleSheet, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Splash, Home, AddTryout, Result, History } from './src/screens';
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
+export type Route =
+  | { name: 'Splash' }
+  | { name: 'Home' }
+  | { name: 'AddTryout' }
+  | { name: 'Result'; params: { id: string } }
+  | { name: 'History' };
+
+export default function App() {
+  const [route, setRoute] = useState<Route>({ name: 'Splash' });
+
+  useEffect(() => {
+    // Keep status bar style neutral; screens can override if needed
+  }, []);
+
+  const navigate = (r: Route) => setRoute(r);
 
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
+      <StatusBar barStyle={'dark-content'} />
+      <View style={styles.container}>
+        {route.name === 'Splash' && <Splash navigate={navigate} />}
+        {route.name === 'Home' && <Home navigate={navigate} />}
+        {route.name === 'AddTryout' && <AddTryout navigate={navigate} />}
+        {route.name === 'Result' && <Result navigate={navigate} id={route.params.id} />}
+        {route.name === 'History' && <History navigate={navigate} />}
+      </View>
     </SafeAreaProvider>
   );
 }
 
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
-
-  return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
 });
-
-export default App;
