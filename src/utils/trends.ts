@@ -16,7 +16,7 @@ const COLOR_NEUTRAL = '#94a3b8';
 
 export function totalTrend(latest?: Tryout | null, previous?: Tryout | null) {
   if (!latest || !previous) return 0;
-  return latest.total_score - previous.total_score;
+  return Math.round(latest.total_score / latest.subtest_scores.length) - Math.round(previous.total_score / previous.subtest_scores.length);
 }
 
 export function weakestSubtest(latest?: Tryout | null) {

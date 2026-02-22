@@ -59,7 +59,7 @@ export default function Result({ navigation, route }: Props) {
 
         {/* SUMMARY */}
         <SummaryCard
-          totalScore={current.total_score}
+          totalScore={Math.round(current.total_score / current.subtest_scores.length)}
           trend={previous ? totalTrend : undefined}
           subtitle={new Date(current.date).toLocaleString()}
         />

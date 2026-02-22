@@ -15,7 +15,13 @@ export default function History({ navigation }: Props) {
 
   const load = useCallback(async () => {
     const l = await getAllTryouts();
-    setList(l.slice().reverse());
+
+    const sorted = [...l].sort(
+      (a, b) =>
+        (new Date(b.date).getTime() || 0) - (new Date(a.date).getTime() || 0),
+    );
+
+    setList(sorted);
   }, []);
 
   useFocusEffect(
@@ -26,7 +32,7 @@ export default function History({ navigation }: Props) {
 
   const highest = useMemo(() => {
     if (!list.length) return null;
-    return Math.max(...list.map(t => t.total_score));
+    return Math.max(...list.map(t => Math.round(t.total_score / t.subtest_scores.length)));
   }, [list]);
 
   const handleDelete = (item: Tryout, index: number) => {
@@ -49,7 +55,7 @@ export default function History({ navigation }: Props) {
 
   const renderItem = ({ item, index }: { item: Tryout; index: number }) => {
     const previous = list[index + 1];
-    const diff = previous ? item.total_score - previous.total_score : null;
+    const diff = previous ? Math.round(item.total_score / item.subtest_scores.length) - Math.round(previous.total_score / previous.subtest_scores.length) : null;
 
     return (
       <TouchableOpacity
@@ -60,9 +66,7 @@ export default function History({ navigation }: Props) {
 
         <View style={styles.historyContent}>
           <View>
-            <Text style={styles.historyIndex}>
-              Tryout #{list.length - index}
-            </Text>
+            <Text style={styles.historyIndex}>Tryout #{list.length - index}</Text>
 
             <Text style={styles.historyDate}>
               {new Date(item.date).toLocaleDateString()}
@@ -70,7 +74,7 @@ export default function History({ navigation }: Props) {
           </View>
 
           <View style={{ alignItems: 'flex-end' }}>
-            <Text style={styles.historyScore}>{item.total_score}</Text>
+            <Text style={styles.historyScore}>{Math.round(item.total_score / item.subtest_scores.length)}</Text>
 
             {diff !== null && (
               <Text
